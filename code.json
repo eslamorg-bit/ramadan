@@ -1,0 +1,44 @@
+var SHEET_ID = "1a82-fPvU0dgmYmHDHb2dZ3zVg5zJmWYUXOER2cx3ads";
+var SHEET_NAME = "Sheet1"; 
+
+function doGet() {
+  return HtmlService.createHtmlOutputFromFile("index");
+}
+
+function submitEntry(name, city, phone, answers) {
+
+  var sheet = SpreadsheetApp
+      .openById(SHEET_ID)
+      .getSheetByName(SHEET_NAME);
+
+  var data = sheet.getDataRange().getValues();
+
+  var normalizedName = name.trim().replace(/\s+/g, '').toLowerCase();
+  var normalizedPhone = phone.trim();
+  var id = normalizedName + "_" + normalizedPhone;
+
+  var exists = data.some(function(row){
+    var rowName = row[0].toString().trim().replace(/\s+/g, '').toLowerCase();
+    var rowPhone = row[2].toString().trim(); // ← تغير الفهرس لأن الهاتف أصبح العمود الثالث
+    var rowId = rowName + "_" + rowPhone;
+    return rowId === id;
+  });
+
+  if(exists){
+    return {status: "error", message: "❌ هذا الاسم + الهاتف مسجل مسبقًا"};
+  }
+
+  var isComplete = answers.every(function(a){ return a.correct === true; }) ? "✅" : "❌";
+  var score = answers.filter(a => a.correct === true).length;
+
+  var timestamp = new Date();
+  var answersOnly = answers.map(a => a.choice);
+
+  sheet.appendRow(
+    [name, city, phone]
+    .concat(answersOnly)
+    .concat([isComplete, score, timestamp])
+  );
+
+  return {status: "success", message: "✅ تم التسجيل بنجاح"};
+}
